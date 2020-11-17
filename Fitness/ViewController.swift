@@ -6,13 +6,22 @@
 //  Copyright © 2020 Jonathan Uhler. All rights reserved.
 //
 // ==============================================================================================
+//
 // Revision History
 //	version		  date						changes
 //  -------		--------			-----------------------
 //	1.0.0		11/15/20			Changes in this version:
-//										-First workable version of Fitness
+//										-First working version of Fitness
 //
-//
+//	2.0.0		11/17/20			Changes in this version:
+//										-The screen can now be swiped to change the day that data
+//										 is displayed for
+//										-Rendering issues with the date stamp were fixed
+//										-All three rings will update correctly when the screen is
+//										 tapped
+//										-Issues with tapping and swiping at the same time were fixed
+//										-App icon updated to support all versions of iOS 7-14 on all
+//										 devices
 //
 
 // Import healthkit utilities
@@ -43,10 +52,13 @@ class ViewController: UIViewController {
 	var resultMove: Double = 0.0
 	
 	// Shape layer for rings
-	let shapeLayer = CAShapeLayer()
+	let energyLayer = CAShapeLayer()
+	let stepsLayer = CAShapeLayer()
+	let moveLayer = CAShapeLayer()
 	
 	// Time
 	let globalNow = Date()
+	var dateToChange = Date()
 	
 	// resultData is what is returned by the function at the end
 	var resultData = 0.0
@@ -80,8 +92,6 @@ class ViewController: UIViewController {
 	// MARK: func getExerciseData
 	func getExerciseData(resultType: resultType, dataType: HKQuantityTypeIdentifier, unitOfData: HKUnit, fromTime: Date, toTime: Date) -> Void {
 		
-		print("from: \(fromTime), to: \(toTime)")
-		
 		// Uses the dataType argument to get the type of data (.activeEnergyBurned, .stepCount,
 		// or .distanceWalkingRunning)
 		guard let healthQuantityType = HKQuantityType.quantityType(forIdentifier: dataType) else { return }
@@ -89,6 +99,10 @@ class ViewController: UIViewController {
 		// Setup the range of time to get health data from
 		var interval = DateComponents()
 		interval.day = 1
+		
+		self.resultEnergy = 0.0
+		self.resultSteps = 0.0
+		self.resultMove = 0.0
 		
 		// Setup the query to healthkit (this is what you need to get and do with HK)
 		let query = HKStatisticsCollectionQuery(quantityType: healthQuantityType,
@@ -104,16 +118,18 @@ class ViewController: UIViewController {
 				
 				if let sum = statistics.sumQuantity() {
 					// Save the data in a double variable with the correct unit
-					switch resultType {
-					case .energy:
-						self.resultEnergy = sum.doubleValue(for: unitOfData)
 					
-					case .steps:
-						self.resultSteps = sum.doubleValue(for: unitOfData)
+					switch resultType {
+						case .energy:
+							self.resultEnergy = sum.doubleValue(for: unitOfData)
 						
-					case .move:
-						self.resultMove = sum.doubleValue(for: unitOfData)
-					}
+						case .steps:
+							self.resultSteps = sum.doubleValue(for: unitOfData)
+							
+						case .move:
+							self.resultMove = sum.doubleValue(for: unitOfData)
+					} // end: switch
+					
 				} // end: if
 				
 			} // end: result!.enumerateStatistics
@@ -140,7 +156,10 @@ class ViewController: UIViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		
+		// Display the current date
+		displayDate(dateToDisplay: globalNow)
 		
+		// Get data from health
 		getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
 		
 		getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
@@ -166,11 +185,7 @@ class ViewController: UIViewController {
 			
 			// Check for Authorization
 			healthStore.requestAuthorization(toShare: infoToWrite, read: infoToRead as? Set<HKObjectType>) { (success, error) in
-				if (success) {
-					
-					
-					
-				} // end: if
+				if (success) { } // end: if
 			} // end: healthStore.requestAuthorization
 		} // end: if
 		
@@ -195,11 +210,11 @@ class ViewController: UIViewController {
 		
 		// Call createTrackLayer to create circles
 		// Exercise circle
-		createTrackLayer(layerRadius: 110, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y)
+		createTrackLayer(layerRadius: 110, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .energy)
 		// Steps circle
-		createTrackLayer(layerRadius: 75, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.green.cgColor, point_x: CGPoint_x, point_y: CGPoint_y)
+		createTrackLayer(layerRadius: 75, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.green.cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .steps)
 		// Miles circle
-		createTrackLayer(layerRadius: 40, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y)
+		createTrackLayer(layerRadius: 40, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .move)
 	}
 	
 	// ==============================================================================================
@@ -222,33 +237,41 @@ class ViewController: UIViewController {
 				// Swiping right
 				case UISwipeGestureRecognizer.Direction.right:
 					
-					let prevDay = globalNow - (1000)
-					displayDate(dateToDisplay: prevDay)
+					let newDay = dateToChange - (86400) // number of seconds in a day
+					dateToChange = newDay
+					displayDate(dateToDisplay: newDay)
 					
 					// Call the getExerciseData function again to update the data
-					getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: prevDay), toTime: prevDay)
+					getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
 					
-					getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: prevDay), toTime: prevDay)
+					getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
 					
-					getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: prevDay), toTime: prevDay)
+					getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
 
 				// Swiping left
 				case UISwipeGestureRecognizer.Direction.left:
 					
-					let nextDay = globalNow + (1000 * 60 * 60 * 24)
-					displayDate(dateToDisplay: nextDay)
+					let newDay = dateToChange + (86400) // number of seconds in a day
 					
-					// Call the getExerciseData function again to update the data
-					getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: nextDay), toTime: nextDay)
-					
-					getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: nextDay), toTime: nextDay)
-					
-					getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: nextDay), toTime: nextDay)
+					if (newDay <= Calendar.current.startOfDay(for: globalNow + 86400)) {
+						dateToChange = newDay
+						displayDate(dateToDisplay: newDay)
+						
+						// Call the getExerciseData function again to update the data
+						getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
+						
+						getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
+						
+						getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: newDay), toTime: newDay)
+					} // end: if
 
-				// No swipe; breaking
+				// No swipe; display current date and break
 				default:
+					
+					displayDate(dateToDisplay: globalNow)
 					break
 			} // end: switch
+			
 		} // end: if
 	} // end: func respondToSwipeGesture
 	
@@ -266,18 +289,48 @@ class ViewController: UIViewController {
 	//
 	// MARK: func displayDate
 	func displayDate(dateToDisplay: Date) {
+		// Make sure the area that the date is displayed in is cleared before displaying a new date
+		displayClearRect(x: 0, y: screenHeight * -0.6, w: screenWidth, h: screenHeight, font: 700)
+		
+		// Get and format the date to display
 		let date = dateToDisplay
 		let format = DateFormatter()
 		format.dateFormat = "MM / dd / yyyy"
 		let formattedDate = format.string(from: date)
 
-		let dateFrame:CGRect = CGRect(x: screenWidth * 0.5 - 90, y: screenHeight * 0.05, width: 180, height: 25)
-		let dateLabel:UILabel = UILabel(frame: dateFrame)
+		// Display the date at the top center of the screen
+		let dateFrame: CGRect = CGRect(x: screenWidth * 0.5 - 90, y: screenHeight * 0.05, width: 180, height: 25)
+		let dateLabel: UILabel = UILabel(frame: dateFrame)
 		dateLabel.text = "\(formattedDate)"
 		dateLabel.textAlignment = .center
 		dateLabel.font = UIFont(name: "Gill Sans", size: 30)
-		dateLabel.textColor = UIColor.white
+		
+		
+		
+		if (dateToDisplay == globalNow) {
+			dateLabel.textColor = UIColor.yellow
+			print("same")
+		}
+		else {
+			dateLabel.textColor = UIColor.white
+			print("dif")
+		}
+		
 		self.view.addSubview(dateLabel)
+	}
+	
+	
+	func displayClearRect(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, font: CGFloat) {
+		
+		// Display the rectangle to clear
+		let clearRect: CGRect = CGRect(x: x, y: y, width: w, height: h)
+		let clearLabel: UILabel = UILabel(frame: clearRect)
+		clearLabel.text = "-"
+		clearLabel.textAlignment = .center
+		clearLabel.font = UIFont(name: "Gill Sans", size: font)
+		clearLabel.textColor = UIColor.init(red: 0.04, green: 0.05, blue: 0.05, alpha: 1.0)
+		self.view.addSubview(clearLabel)
+		
 	}
 
 
@@ -301,7 +354,7 @@ class ViewController: UIViewController {
 	// None
 	//
 	// MARK: func createTrackLayer
-	func createTrackLayer(layerRadius: CGFloat, layerStart: CGFloat, layerEnd: CGFloat, layerStrokeColor: CGColor, circleStrokeColor: CGColor, point_x: CGFloat, point_y: CGFloat) {
+	func createTrackLayer(layerRadius: CGFloat, layerStart: CGFloat, layerEnd: CGFloat, layerStrokeColor: CGColor, circleStrokeColor: CGColor, point_x: CGFloat, point_y: CGFloat, resultType: resultType) {
 		
 		// Define the track as a shape layer
 		let trackLayer = CAShapeLayer()
@@ -318,20 +371,54 @@ class ViewController: UIViewController {
 		trackLayer.lineCap = CAShapeLayerLineCap.round
 		view.layer.addSublayer(trackLayer)
 		
-		// Create circle
-		shapeLayer.path = circularPath.cgPath
+		switch resultType {
+			case .energy:
+				// Create circle
+				energyLayer.path = circularPath.cgPath
+				// Fill in the circle
+				energyLayer.strokeColor = circleStrokeColor
+				energyLayer.lineWidth = 30
+				energyLayer.fillColor = UIColor.clear.cgColor
+				energyLayer.lineCap = CAShapeLayerLineCap.round
+				
+				energyLayer.strokeEnd = 0
+				
+				view.layer.addSublayer(energyLayer)
+				
+				view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+			
+			case .steps:
+				// Create circle
+				stepsLayer.path = circularPath.cgPath
+				// Fill in the circle
+				stepsLayer.strokeColor = circleStrokeColor
+				stepsLayer.lineWidth = 30
+				stepsLayer.fillColor = UIColor.clear.cgColor
+				stepsLayer.lineCap = CAShapeLayerLineCap.round
+				
+				stepsLayer.strokeEnd = 0
+				
+				view.layer.addSublayer(stepsLayer)
+				
+				view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+			
+			case .move:
+				// Create circle
+				moveLayer.path = circularPath.cgPath
+				// Fill in the circle
+				moveLayer.strokeColor = circleStrokeColor
+				moveLayer.lineWidth = 30
+				moveLayer.fillColor = UIColor.clear.cgColor
+				moveLayer.lineCap = CAShapeLayerLineCap.round
+				
+				moveLayer.strokeEnd = 0
+				
+				view.layer.addSublayer(moveLayer)
+				
+				view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
+			
+		} // end: switch
 		
-		// Fill in the circle
-		shapeLayer.strokeColor = circleStrokeColor
-		shapeLayer.lineWidth = 30
-		shapeLayer.fillColor = UIColor.clear.cgColor
-		shapeLayer.lineCap = CAShapeLayerLineCap.round
-		
-		shapeLayer.strokeEnd = 0
-		
-		view.layer.addSublayer(shapeLayer)
-		
-		view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
 	} // end: func createTrackLayer
 
 	
@@ -348,6 +435,10 @@ class ViewController: UIViewController {
 	//
 	// MARK: func handleTap
 	@objc func handleTap() {
+		
+		// Clear the data area of the canvas to display new data
+		displayClearRect(x: screenWidth * -0.5, y: screenHeight * -0.05, w: screenWidth * 2, h: screenHeight, font: 1500)
+		
 		// Create all of the ring animations
 		// Energy animation
 		let energyRounded = round(1.0 * self.resultEnergy) / 1.0
@@ -356,7 +447,7 @@ class ViewController: UIViewController {
 							frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
 							labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
 							labelMsg: "WORK",
-							isThousands: false)
+							resultType: .energy)
 		// Steps animation
 		let stepsRounded = round(1.0 * self.resultSteps) / 1.0
 		handleRingAnimation(dataResults: stepsRounded,
@@ -364,7 +455,7 @@ class ViewController: UIViewController {
 							frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
 							labelTextColor: UIColor.green,
 							labelMsg: "STEPS",
-							isThousands: true)
+							resultType: .steps)
 		// Miles animation
 		let moveRounded = round(100.0 * self.resultMove) / 100.0
 		handleRingAnimation(dataResults: moveRounded,
@@ -372,7 +463,7 @@ class ViewController: UIViewController {
 							frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
 							labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
 							labelMsg: "MOVE",
-							isThousands: false)
+							resultType: .move)
 	}
 	
 	
@@ -405,9 +496,11 @@ class ViewController: UIViewController {
 	// None
 	//
 	// MARK: func handleRingAnimation
-	func handleRingAnimation(dataResults: Double, goal: Int, frame_x: CGFloat, frame_y: CGFloat, frame_w: CGFloat, frame_h: CGFloat, labelTextColor: UIColor, labelMsg: String, isThousands: Bool) {
+	func handleRingAnimation(dataResults: Double, goal: Int, frame_x: CGFloat, frame_y: CGFloat, frame_w: CGFloat, frame_h: CGFloat, labelTextColor: UIColor, labelMsg: String, resultType: resultType) {
 		
-		let basicAnimation = CABasicAnimation(keyPath: "strokeEnd")
+		let energyAnimation = CABasicAnimation(keyPath: "strokeEnd")
+		let stepsAnimation = CABasicAnimation(keyPath: "strokeEnd")
+		let moveAnimation = CABasicAnimation(keyPath: "strokeEnd")
 		
 		// Take the data from healthkit (like resultEnergy) and the goal
 		let currentDataStatus: Double = Double(dataResults)
@@ -417,28 +510,59 @@ class ViewController: UIViewController {
 		let dataToPercent: Int = Int(dataToFloat * 100)
 		
 		
-		// Animation
-		basicAnimation.toValue = dataToFloat // how long the animation is
-		basicAnimation.duration = 1 // 1 second to complete the animation
-		// Filling the correct area
-		basicAnimation.fillMode = CAMediaTimingFillMode.forwards
-		basicAnimation.isRemovedOnCompletion = false // do not remove once completed
-		
-		// Add the shape layer
-		shapeLayer.add(basicAnimation, forKey: "test")
-		
+		switch resultType {
+			case .energy:
+				// Animation
+				energyAnimation.toValue = dataToFloat // how long the animation is
+				energyAnimation.duration = 1 // 1 second to complete the animation
+				// Filling the correct area
+				energyAnimation.fillMode = CAMediaTimingFillMode.forwards
+				energyAnimation.isRemovedOnCompletion = false // do not remove once completed
+				
+				// Add the shape layer
+				energyLayer.add(energyAnimation, forKey: "energy")
+			
+			case .steps:
+				// Animation
+				stepsAnimation.toValue = dataToFloat // how long the animation is
+				stepsAnimation.duration = 1 // 1 second to complete the animation
+				// Filling the correct area
+				stepsAnimation.fillMode = CAMediaTimingFillMode.forwards
+				stepsAnimation.isRemovedOnCompletion = false // do not remove once completed
+				
+				// Add the shape layer
+				stepsLayer.add(stepsAnimation, forKey: "energy")
+			
+			case .move:
+				// Animation
+				moveAnimation.toValue = dataToFloat // how long the animation is
+				moveAnimation.duration = 1 // 1 second to complete the animation
+				// Filling the correct area
+				moveAnimation.fillMode = CAMediaTimingFillMode.forwards
+				moveAnimation.isRemovedOnCompletion = false // do not remove once completed
+				
+				// Add the shape layer
+				moveLayer.add(moveAnimation, forKey: "energy")
+			
+		}
 		
 		// Complete the animation
 		// Setup the frame and basic message
-		let animationFrame:CGRect = CGRect(x: frame_x, y: frame_y, width: frame_w, height: frame_h)
-		let animationLabel:UILabel = UILabel(frame: animationFrame)
+		let animationFrame: CGRect = CGRect(x: frame_x, y: frame_y, width: frame_w, height: frame_h)
+		let animationLabel: UILabel = UILabel(frame: animationFrame)
 		
-		if (isThousands) {
-			animationLabel.text = "\(labelMsg):  \(currentDataStatus / 1000)k/\(goalForData / 1000)k | \(dataToPercent)%"
-		}
-		else {
-			animationLabel.text = "\(labelMsg):  \(currentDataStatus)/\(goalForData) | \(dataToPercent)%"
-		}
+		switch resultType {
+			case .energy:
+				let energyString: String = String(format: "%.0f", currentDataStatus)
+				animationLabel.text = "\(labelMsg):  \(energyString)/\(goalForData) | \(dataToPercent)%"
+				
+			case .steps:
+				animationLabel.text = "\(labelMsg):  \(currentDataStatus / 1000)k/\(goalForData / 1000)k | \(dataToPercent)%"
+				
+			case .move:
+				animationLabel.text = "\(labelMsg):  \(currentDataStatus)/\(goalForData) | \(dataToPercent)%"
+			
+		} // end: switch
 		
 		animationLabel.textAlignment = .center
 		animationLabel.font = UIFont(name: "Gill Sans", size: 30)
