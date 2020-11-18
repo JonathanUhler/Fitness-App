@@ -26,6 +26,10 @@
 // 2.1.0		11/18/20			Changes in this version:
 //										-Single taps to update rings will only be detected when
 //										 tapping on the rings
+//
+// 2.2.0		11/18/20			Changes in this version:
+//										-Minor documentation changes
+//										-Semi-functional sliders to change goals
 
 // Import healthkit utilities
 import UIKit
@@ -51,8 +55,11 @@ class ViewController: UIViewController {
 	
 	// MARK: Begin: Getting data from HK
 	var resultEnergy: Double = 0.0
+	var energyGoal = 150
 	var resultSteps: Double = 0.0
+	var stepsGoal = 5000
 	var resultMove: Double = 0.0
+	var moveGoal = 2
 	
 	// Shape layer for rings
 	let energyLayer = CAShapeLayer()
@@ -74,7 +81,7 @@ class ViewController: UIViewController {
 	
 	
 	// ==============================================================================================
-	// func getExerciseData
+	// MARK: func getExerciseData
 	//
 	// A function that gets the required data from the Health app for the ring app
 	//
@@ -92,7 +99,6 @@ class ViewController: UIViewController {
 	//
 	// resultData:										The result from healthkit
 	//
-	// MARK: func getExerciseData
 	func getExerciseData(resultType: resultType, dataType: HKQuantityTypeIdentifier, unitOfData: HKUnit, fromTime: Date, toTime: Date) -> Void {
 		
 		// Uses the dataType argument to get the type of data (.activeEnergyBurned, .stepCount,
@@ -145,7 +151,7 @@ class ViewController: UIViewController {
 
 	
 	// ==============================================================================================
-	// func viewDidLoad
+	// MARK: func viewDidLoad
 	//
 	// Gets data and authorization from healthkit once the UIView of the app is able to load
 	//
@@ -155,7 +161,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func viewDidLoad
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		
@@ -227,7 +232,7 @@ class ViewController: UIViewController {
 	}
 	
 	// ==============================================================================================
-	// func respondToSwipeGesture
+	// MARK: func respondToSwipeGesture
 	//
 	// A function to recognize and repond to the user swiping on the screen (if this happens, the date
 	// being displayed will be changed)
@@ -238,7 +243,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func respondToSwipeGesture
 	@objc func respondToSwipeGesture(gesture: UIGestureRecognizer) {
 		// Verify that the gesture is a UISwipeGesture
 		if let swipeGesture = gesture as? UISwipeGestureRecognizer {
@@ -286,7 +290,7 @@ class ViewController: UIViewController {
 	
 	
 	// ==============================================================================================
-	// func respondToDoubleTap
+	// MARK: func respondToDoubleTap
 	//
 	// A function to reset the date being displayed to the current day if the user double taps the
 	// screen
@@ -297,7 +301,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func respondToDoubleTap
 	@objc func respondToDoubleTap() {
 		dateToChange = globalNow
 		
@@ -314,7 +317,7 @@ class ViewController: UIViewController {
 	
 	
 	// ==============================================================================================
-	// func displayDate
+	// MARK: func displayDate
 	//
 	// Displays the date stamp at the top of the app
 	//
@@ -324,7 +327,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func displayDate
 	func displayDate(dateToDisplay: Date) {
 		// Make sure the area that the date is displayed in is cleared before displaying a new date
 		displayClearRect(x: 0, y: screenHeight * -0.6, w: screenWidth, h: screenHeight, font: 700)
@@ -355,6 +357,26 @@ class ViewController: UIViewController {
 	}
 	
 	
+	// ==============================================================================================
+	// MARK: func displayClearRect
+	//
+	// A function to display a rectangle that clears the date and information text to display new
+	// text on top of it
+	//
+	// Arguments--
+	// x:			The x position of the rectangle
+	//
+	// y:			The y position of the rectangle
+	//
+	// w:			The width of the rectangle
+	//
+	// h:			The height of the rectangle
+	//
+	// font:		The font size of the retangle
+	//
+	// Returns--
+	// None
+	//
 	func displayClearRect(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, font: CGFloat) {
 		
 		// Display the rectangle to clear
@@ -370,7 +392,7 @@ class ViewController: UIViewController {
 
 
 	// ==============================================================================================
-	// func createTrackLayer
+	// MARK: func createTrackLayer
 	//
 	// Creates the gray rings that are filled in inside the app
 	//
@@ -388,7 +410,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func createTrackLayer
 	func createTrackLayer(layerRadius: CGFloat, layerStart: CGFloat, layerEnd: CGFloat, layerStrokeColor: CGColor, circleStrokeColor: CGColor, point_x: CGFloat, point_y: CGFloat, resultType: resultType) {
 		
 		// Create the circular path with the arguments from the function call
@@ -460,7 +481,7 @@ class ViewController: UIViewController {
 
 	
 	// ==============================================================================================
-	// func handleTap
+	// MARK: func handleTap
 	//
 	// A function that begins displaying the UI information when the screen is tapped
 	//
@@ -470,7 +491,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func handleTap
 	@objc func handleTap(singleTap: UITapGestureRecognizer) {
 		
 		// Once the tap stops
@@ -479,6 +499,7 @@ class ViewController: UIViewController {
 			
 			// Define the boundary of the three rings
 			let ringCircle = UIBezierPath(arcCenter: CGPoint(x: screenWidth * 0.5, y: screenHeight * 0.35), radius: 130, startAngle: -CGFloat.pi / 2, endAngle: 1.5 * CGFloat.pi, clockwise: true)
+			let goalsRect: CGRect = CGRect(x: 0.0, y: screenHeight * 0.65, width: screenWidth, height: 120.0)
 			
 			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
 				
@@ -489,7 +510,7 @@ class ViewController: UIViewController {
 				// Energy animation
 				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
 				handleRingAnimation(dataResults: energyRounded,
-									goal: 150,
+									goal: energyGoal,
 									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
 									labelMsg: "WORK",
@@ -497,7 +518,7 @@ class ViewController: UIViewController {
 				// Steps animation
 				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
 				handleRingAnimation(dataResults: stepsRounded,
-									goal: 5000,
+									goal: stepsGoal,
 									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.green,
 									labelMsg: "STEPS",
@@ -505,20 +526,96 @@ class ViewController: UIViewController {
 				// Miles animation
 				let moveRounded = round(100.0 * self.resultMove) / 100.0
 				handleRingAnimation(dataResults: moveRounded,
-									goal: 2,
+									goal: moveGoal,
 									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
 									labelMsg: "MOVE",
 									resultType: .move)
 				
 			} // end: if
+			
+			else if (goalsRect.contains(pointOfTap)) { // Set new goals
+				// Call for energy goal
+				resetGoals(defaultValue: 150, minValue: 1, maxValue: 500, resultType: .energy, sliderColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0), slider_x: 0, slider_y: 0)
+				// Call for steps goal
+				resetGoals(defaultValue: 5000, minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: UIColor.green, slider_x: 0, slider_y: 50)
+				// Call for move goal
+				resetGoals(defaultValue: 2, minValue: 1, maxValue: 10, resultType: .move, sliderColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0), slider_x: 0, slider_y: 100)
+			}
 		} // end: if
 		
 	} // end: func handleTap
 	
 	
 	// ==============================================================================================
-	// func handleRingAnimation
+	// MARK: func resetGoals
+	//
+	// A function to add sliders to the screen so the user can change their goals
+	//
+	// Arguments--
+	// None
+	//
+	// Returns--
+	// None
+	//
+	func resetGoals(defaultValue: Float, minValue: Float, maxValue: Float, resultType: resultType, sliderColor: UIColor, slider_x: Int, slider_y: Int) {
+		
+		let goalSlider = UISlider(frame:CGRect(x: slider_x, y: slider_y, width: Int(screenWidth * 0.5), height: 10))
+		goalSlider.center = self.view.center
+		 
+		goalSlider.minimumValue = minValue
+		goalSlider.maximumValue = maxValue
+		goalSlider.isContinuous = true
+		goalSlider.tintColor = sliderColor
+		
+		switch resultType {
+			case .energy:
+				goalSlider.addTarget(self, action: #selector(self.energySliderChanged(_:)), for: .valueChanged)
+				
+			case .steps:
+				goalSlider.addTarget(self, action: #selector(self.stepsSliderChanged(_:)), for: .valueChanged)
+				
+			case .move:
+				goalSlider.addTarget(self, action: #selector(self.moveSliderChanged(_:)), for: .valueChanged)
+				
+		} // end: switch
+		
+		view.addSubview(goalSlider)
+		
+		UIView.animate(withDuration: 0.8) {
+			goalSlider.setValue(defaultValue, animated: true)
+		}
+		
+	} // end: func resetGoals
+	
+	
+	// ==============================================================================================
+	// MARK: functions slidersChanged
+	// func energySliderChanged, func stepsSliderChanged, func moveSliderChanged
+	//
+	// Three functions that handle the updating of a goal for energy, steps, or movement
+	//
+	// Arguments--
+	// None
+	//
+	// Returns--
+	// None
+	//
+	@objc func energySliderChanged(_ sender:UISlider!) {
+		energyGoal = Int(sender.value)
+	} // end: func energySliderChanged
+	
+	@objc func stepsSliderChanged(_ sender:UISlider!) {
+		stepsGoal = Int(sender.value)
+	} // end: func stepsSliderChanged
+	
+	@objc func moveSliderChanged(_ sender:UISlider!) {
+		moveGoal = Int(sender.value)
+	} // end: func moveSliderChanged
+	
+	
+	// ==============================================================================================
+	// MARK: func handleRingAnimation
 	//
 	// A function to animate the ring's progress when the app loads
 	//
@@ -545,7 +642,6 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	// MARK: func handleRingAnimation
 	func handleRingAnimation(dataResults: Double, goal: Int, frame_x: CGFloat, frame_y: CGFloat, frame_w: CGFloat, frame_h: CGFloat, labelTextColor: UIColor, labelMsg: String, resultType: resultType) {
 		
 		let energyAnimation = CABasicAnimation(keyPath: "strokeEnd")
