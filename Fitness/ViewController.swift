@@ -23,6 +23,9 @@
 //										-App icon updated to support all versions of iOS 7-14 on all
 //										 devices
 //
+// 2.1.0		11/18/20			Changes in this version:
+//										-Single taps to update rings will only be detected when
+//										 tapping on the rings
 
 // Import healthkit utilities
 import UIKit
@@ -173,7 +176,7 @@ class ViewController: UIViewController {
 			let infoToRead = Set([
 				HKSampleType.quantityType(forIdentifier: .activeEnergyBurned)!,
 				HKSampleType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-				HKSampleType.quantityType(forIdentifier: .stepCount)
+				HKSampleType.quantityType(forIdentifier: .stepCount)!
 			])
 			
 			let infoToWrite = Set([
@@ -184,7 +187,7 @@ class ViewController: UIViewController {
 			
 			
 			// Check for Authorization
-			healthStore.requestAuthorization(toShare: infoToWrite, read: infoToRead as? Set<HKObjectType>) { (success, error) in
+			healthStore.requestAuthorization(toShare: infoToWrite, read: infoToRead as Set<HKObjectType>) { (success, error) in
 				if (success) { } // end: if
 			} // end: healthStore.requestAuthorization
 		} // end: if
@@ -198,9 +201,15 @@ class ViewController: UIViewController {
 		let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(respondToSwipeGesture))
 		swipeLeft.direction = UISwipeGestureRecognizer.Direction.left
 		self.view.addGestureRecognizer(swipeLeft)
+		
+		
+		// Check for double tapping
+		let doubleTap = UITapGestureRecognizer(target: self, action: #selector(respondToDoubleTap))
+		doubleTap.numberOfTapsRequired = 2
+		self.view.addGestureRecognizer(doubleTap)
 
 
-		// MARK: Visuals and rings
+		// MARK: visuals and rings
 		// Set the app background color to a dark gray
 		self.view.backgroundColor = UIColor.init(red: 0.04, green: 0.05, blue: 0.05, alpha: 1.0)
 
@@ -277,6 +286,34 @@ class ViewController: UIViewController {
 	
 	
 	// ==============================================================================================
+	// func respondToDoubleTap
+	//
+	// A function to reset the date being displayed to the current day if the user double taps the
+	// screen
+	//
+	// Arguments--
+	// None
+	//
+	// Returns--
+	// None
+	//
+	// MARK: func respondToDoubleTap
+	@objc func respondToDoubleTap() {
+		dateToChange = globalNow
+		
+		// Display the current day
+		displayDate(dateToDisplay: globalNow)
+		
+		// Get new health data for the current day
+		getExerciseData(resultType: .energy, dataType: HKQuantityTypeIdentifier.activeEnergyBurned, unitOfData: HKUnit.largeCalorie(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
+		
+		getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
+		
+		getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
+	}
+	
+	
+	// ==============================================================================================
 	// func displayDate
 	//
 	// Displays the date stamp at the top of the app
@@ -309,11 +346,9 @@ class ViewController: UIViewController {
 		
 		if (dateToDisplay == globalNow) {
 			dateLabel.textColor = UIColor.yellow
-			print("same")
 		}
 		else {
 			dateLabel.textColor = UIColor.white
-			print("dif")
 		}
 		
 		self.view.addSubview(dateLabel)
@@ -356,11 +391,12 @@ class ViewController: UIViewController {
 	// MARK: func createTrackLayer
 	func createTrackLayer(layerRadius: CGFloat, layerStart: CGFloat, layerEnd: CGFloat, layerStrokeColor: CGColor, circleStrokeColor: CGColor, point_x: CGFloat, point_y: CGFloat, resultType: resultType) {
 		
+		// Create the circular path with the arguments from the function call
+		let circularPath = UIBezierPath(arcCenter: CGPoint(x: point_x, y: point_y), radius: layerRadius, startAngle: layerStart, endAngle: layerEnd, clockwise: true)
+		
 		// Define the track as a shape layer
 		let trackLayer = CAShapeLayer()
 		
-		// Create the circular path with the arguments from the function call
-		let circularPath = UIBezierPath(arcCenter: CGPoint(x: point_x, y: point_y), radius: layerRadius, startAngle: layerStart, endAngle: layerEnd, clockwise: true)
 		// Set the trackLayer to be the circular path
 		trackLayer.path = circularPath.cgPath
 		
@@ -415,6 +451,7 @@ class ViewController: UIViewController {
 				
 				view.layer.addSublayer(moveLayer)
 				
+				
 				view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleTap)))
 			
 		} // end: switch
@@ -434,37 +471,50 @@ class ViewController: UIViewController {
 	// None
 	//
 	// MARK: func handleTap
-	@objc func handleTap() {
+	@objc func handleTap(singleTap: UITapGestureRecognizer) {
 		
-		// Clear the data area of the canvas to display new data
-		displayClearRect(x: screenWidth * -0.5, y: screenHeight * -0.05, w: screenWidth * 2, h: screenHeight, font: 1500)
+		// Once the tap stops
+		if (singleTap.state == UIGestureRecognizer.State.ended) {
+			let pointOfTap = singleTap.location(in: self.view) // Define the point the user tapped at
+			
+			// Define the boundary of the three rings
+			let ringCircle = UIBezierPath(arcCenter: CGPoint(x: screenWidth * 0.5, y: screenHeight * 0.35), radius: 130, startAngle: -CGFloat.pi / 2, endAngle: 1.5 * CGFloat.pi, clockwise: true)
+			
+			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
+				
+				// Clear the data area of the canvas to display new data
+				displayClearRect(x: screenWidth * -0.5, y: screenHeight * -0.05, w: screenWidth * 2, h: screenHeight, font: 1500)
+				
+				// Create all of the ring animations
+				// Energy animation
+				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
+				handleRingAnimation(dataResults: energyRounded,
+									goal: 150,
+									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
+									labelMsg: "WORK",
+									resultType: .energy)
+				// Steps animation
+				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
+				handleRingAnimation(dataResults: stepsRounded,
+									goal: 5000,
+									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.green,
+									labelMsg: "STEPS",
+									resultType: .steps)
+				// Miles animation
+				let moveRounded = round(100.0 * self.resultMove) / 100.0
+				handleRingAnimation(dataResults: moveRounded,
+									goal: 2,
+									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
+									labelMsg: "MOVE",
+									resultType: .move)
+				
+			} // end: if
+		} // end: if
 		
-		// Create all of the ring animations
-		// Energy animation
-		let energyRounded = round(1.0 * self.resultEnergy) / 1.0
-		handleRingAnimation(dataResults: energyRounded,
-							goal: 150,
-							frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
-							labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
-							labelMsg: "WORK",
-							resultType: .energy)
-		// Steps animation
-		let stepsRounded = round(1.0 * self.resultSteps) / 1.0
-		handleRingAnimation(dataResults: stepsRounded,
-							goal: 5000,
-							frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
-							labelTextColor: UIColor.green,
-							labelMsg: "STEPS",
-							resultType: .steps)
-		// Miles animation
-		let moveRounded = round(100.0 * self.resultMove) / 100.0
-		handleRingAnimation(dataResults: moveRounded,
-							goal: 2,
-							frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
-							labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
-							labelMsg: "MOVE",
-							resultType: .move)
-	}
+	} // end: func handleTap
 	
 	
 	// ==============================================================================================

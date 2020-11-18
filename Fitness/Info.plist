@@ -3,9 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIconFiles</key>
-	<array>
-		<string>FitnessIcon.png</string>
-	</array>
+	<array/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
