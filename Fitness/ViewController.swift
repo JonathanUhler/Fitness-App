@@ -8,6 +8,9 @@
 // ==============================================================================================
 //
 // Revision History
+//
+// PRE-RELEASES
+//
 //	version		  date						changes
 //  -------		--------			-----------------------
 //	1.0.0		11/15/20			Changes in this version:
@@ -30,6 +33,13 @@
 // 2.2.0		11/18/20			Changes in this version:
 //										-Minor documentation changes
 //										-Semi-functional sliders to change goals
+//
+// 3.0.0		11/18/20			Changes in this version:
+//										-The goals can now be changed by tapping on anywhere on the
+//										 three rows of text at the bottom
+//											-Slider will show up that can be dragged to change goals
+//											-When the rings are tapped, the new goals will be used
+//											-Goals are saved even when closing the app
 
 // Import healthkit utilities
 import UIKit
@@ -48,18 +58,19 @@ let healthStore = HKHealthStore()
 // MARK: class ViewController
 class ViewController: UIViewController {
 	
+	// MARK: Init class variables
 	// Get the screen dimensions
 	let screenRect = UIScreen.main.bounds
 	lazy var screenWidth = screenRect.size.width
 	lazy var screenHeight = screenRect.size.height
 	
-	// MARK: Begin: Getting data from HK
 	var resultEnergy: Double = 0.0
-	var energyGoal = 150
 	var resultSteps: Double = 0.0
-	var stepsGoal = 5000
 	var resultMove: Double = 0.0
-	var moveGoal = 2
+	
+	var energyGoal = UserDefaults.standard.integer(forKey: "energySaved")
+	var stepsGoal = UserDefaults.standard.integer(forKey: "stepsSaved")
+	var moveGoal = UserDefaults.standard.integer(forKey: "moveSaved")
 	
 	// Shape layer for rings
 	let energyLayer = CAShapeLayer()
@@ -214,7 +225,7 @@ class ViewController: UIViewController {
 		self.view.addGestureRecognizer(doubleTap)
 
 
-		// MARK: visuals and rings
+		// visuals and rings
 		// Set the app background color to a dark gray
 		self.view.backgroundColor = UIColor.init(red: 0.04, green: 0.05, blue: 0.05, alpha: 1.0)
 
@@ -313,7 +324,77 @@ class ViewController: UIViewController {
 		getExerciseData(resultType: .steps, dataType: HKQuantityTypeIdentifier.stepCount, unitOfData: HKUnit.count(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
 		
 		getExerciseData(resultType: .move, dataType: HKQuantityTypeIdentifier.distanceWalkingRunning, unitOfData: HKUnit.mile(), fromTime: Calendar.current.startOfDay(for: globalNow), toTime: globalNow)
-	}
+	} // end: func respondToDoubleTap
+	
+	
+	// ==============================================================================================
+	// MARK: func handleTap
+	//
+	// A function that begins displaying the UI information when the screen is tapped
+	//
+	// Arguments--
+	// None
+	//
+	// Returns--
+	// None
+	//
+	@objc func handleTap(singleTap: UITapGestureRecognizer) {
+		
+		// Once the tap stops
+		if (singleTap.state == UIGestureRecognizer.State.ended) {
+			let pointOfTap = singleTap.location(in: self.view) // Define the point the user tapped at
+			
+			// Define the boundary of the three rings
+			let ringCircle = UIBezierPath(arcCenter: CGPoint(x: screenWidth * 0.5, y: screenHeight * 0.35), radius: 130, startAngle: -CGFloat.pi / 2, endAngle: 1.5 * CGFloat.pi, clockwise: true)
+			let goalsRect: CGRect = CGRect(x: 0.0, y: screenHeight * 0.65, width: screenWidth, height: 120.0)
+			
+			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
+				
+				// Clear the data area of the canvas to display new data
+				displayClearRect(x: 0, y: screenHeight * 0.65, w: screenWidth * 2, h: 120)
+				
+				// Create all of the ring animations
+				// Energy animation
+				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
+				handleRingAnimation(dataResults: energyRounded,
+									goal: energyGoal,
+									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
+									labelMsg: "WORK",
+									resultType: .energy)
+				// Steps animation
+				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
+				handleRingAnimation(dataResults: stepsRounded,
+									goal: stepsGoal,
+									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.green,
+									labelMsg: "STEPS",
+									resultType: .steps)
+				// Miles animation
+				let moveRounded = round(100.0 * self.resultMove) / 100.0
+				handleRingAnimation(dataResults: moveRounded,
+									goal: moveGoal,
+									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
+									labelMsg: "MOVE",
+									resultType: .move)
+				
+			} // end: if
+			
+			else if (goalsRect.contains(pointOfTap)) { // Set new goals
+				// Clear the health data to prevent overlapping
+				displayClearRect(x: 0, y: screenHeight * 0.65, w: screenWidth * 2, h: 120)
+				
+				// Call for energy goal
+				resetGoals(defaultValue: Float(energyGoal), minValue: 1, maxValue: 500, resultType: .energy, sliderColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0), slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.68))
+				// Call for steps goal
+				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: UIColor.green, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.75))
+				// Call for move goal
+				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0), slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.82))
+			}
+		} // end: if
+		
+	} // end: func handleTap
 	
 	
 	// ==============================================================================================
@@ -329,7 +410,7 @@ class ViewController: UIViewController {
 	//
 	func displayDate(dateToDisplay: Date) {
 		// Make sure the area that the date is displayed in is cleared before displaying a new date
-		displayClearRect(x: 0, y: screenHeight * -0.6, w: screenWidth, h: screenHeight, font: 700)
+		displayClearRect(x: 0, y: screenHeight * 0.05, w: screenWidth, h: 35)
 		
 		// Get and format the date to display
 		let date = dateToDisplay
@@ -354,7 +435,7 @@ class ViewController: UIViewController {
 		}
 		
 		self.view.addSubview(dateLabel)
-	}
+	} // end: func displayDate
 	
 	
 	// ==============================================================================================
@@ -377,18 +458,147 @@ class ViewController: UIViewController {
 	// Returns--
 	// None
 	//
-	func displayClearRect(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, font: CGFloat) {
+	func displayClearRect(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat) {
 		
-		// Display the rectangle to clear
-		let clearRect: CGRect = CGRect(x: x, y: y, width: w, height: h)
-		let clearLabel: UILabel = UILabel(frame: clearRect)
-		clearLabel.text = "-"
-		clearLabel.textAlignment = .center
-		clearLabel.font = UIFont(name: "Gill Sans", size: font)
-		clearLabel.textColor = UIColor.init(red: 0.04, green: 0.05, blue: 0.05, alpha: 1.0)
-		self.view.addSubview(clearLabel)
+		let rect = CGRect(x: x, y: y, width: w, height: h)
+		let view = UIView(frame: rect)
+		view.backgroundColor = UIColor.init(red: 0.04, green: 0.05, blue: 0.05, alpha: 1.0)
+
+		self.view.addSubview(view)
 		
-	}
+	} // end: func displayClearRect
+	
+	
+	// ==============================================================================================
+	// MARK: func resetGoals
+	//
+	// A function to add sliders to the screen so the user can change their goals
+	//
+	// Arguments--
+	// defaultValue:		The value set as the default if the slider is not changed
+	//
+	// minValue:			The minimum value the slider can be at
+	//
+	// maxValue:			The maximum value the slider can be at
+	//
+	// resultType:			Used for a switch to determine which slider to apply what information to
+	//
+	// sliderColor:			The tint color of the slider
+	//
+	// Returns--
+	// None
+	//
+	func resetGoals(defaultValue: Float, minValue: Float, maxValue: Float, resultType: resultType, sliderColor: UIColor, slider_x: Int, slider_y: Int) {
+		
+		let goalSlider = UISlider(frame:CGRect(x: slider_x, y: slider_y, width: Int(screenWidth * 0.75), height: 5))
+		
+		goalSlider.minimumValue = minValue
+		goalSlider.maximumValue = maxValue
+		goalSlider.isContinuous = true
+		goalSlider.tintColor = sliderColor
+		
+		switch resultType {
+			case .energy:
+				goalSlider.addTarget(self, action: #selector(self.energySliderChanged(_:)), for: .valueChanged)
+				
+			case .steps:
+				goalSlider.addTarget(self, action: #selector(self.stepsSliderChanged(_:)), for: .valueChanged)
+				
+			case .move:
+				goalSlider.addTarget(self, action: #selector(self.moveSliderChanged(_:)), for: .valueChanged)
+				
+		} // end: switch
+		
+		view.addSubview(goalSlider)
+		
+		UIView.animate(withDuration: 0.8) {
+			goalSlider.setValue(defaultValue, animated: true)
+		}
+		
+	} // end: func resetGoals
+	
+	
+	// ==============================================================================================
+	// MARK: functions slidersChanged
+	// func energySliderChanged, func stepsSliderChanged, func moveSliderChanged
+	//
+	// Three functions that handle the updating of a goal for energy, steps, or movement
+	//
+	// Arguments--
+	// None
+	//
+	// Returns--
+	// None
+	//
+	@objc func energySliderChanged(_ sender:UISlider!) {
+		let roundedStepValue = round(sender.value / 10) * 10
+		sender.value = roundedStepValue
+		
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.667), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0))
+		
+		energyGoal = Int(sender.value)
+		
+		// Save the user's new goal when the enter a new goal
+		UserDefaults.standard.set(Int(energyGoal), forKey: "energySaved")
+	} // end: func energySliderChanged
+	
+	@objc func stepsSliderChanged(_ sender:UISlider!) {
+		let roundedStepValue = round(sender.value / 1000) * 1000
+		sender.value = roundedStepValue
+		
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.737), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.green)
+		
+		stepsGoal = Int(sender.value)
+		
+		// Save the user's new goal when the enter a new goal
+		UserDefaults.standard.set(Int(stepsGoal), forKey: "stepsSaved")
+	} // end: func stepsSliderChanged
+	
+	@objc func moveSliderChanged(_ sender:UISlider!) {
+		let roundedStepValue = round(sender.value / 1) * 1
+		sender.value = roundedStepValue
+		
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.807), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0))
+		
+		moveGoal = Int(sender.value)
+		
+		// Save the user's new goal when the enter a new goal
+		UserDefaults.standard.set(Int(moveGoal), forKey: "moveSaved")
+	} // end: func moveSliderChanged
+	
+	
+	// ==============================================================================================
+	// MARK: func displayGoalValues
+	//
+	// A function to display the current values of the goals so the user can see what they are changing
+	// the goal to
+	//
+	// Arguments--
+	// x:		The x position of the text
+	//
+	// y:		The y position of the text
+	//
+	// w:		The width of the text box
+	//
+	// h:		The height of the text box
+	//
+	// color:	The color of the text
+	//
+	// Returns--
+	// None
+	//
+	func displayGoalValues(x: Int, y: Int, w: Int, h: Int, msg: String, color: UIColor) {
+		
+		displayClearRect(x: screenWidth * 0.86, y: screenHeight * 0.66, w: 40, h: 135)
+		
+		let goalRect: CGRect = CGRect(x: x, y: y, width: w, height: h)
+		let goalLabel: UILabel = UILabel(frame: goalRect)
+		goalLabel.text = msg
+		goalLabel.textAlignment = .center
+		goalLabel.font = UIFont(name: "Gill Sans", size: 15)
+		goalLabel.textColor = color
+		self.view.addSubview(goalLabel)
+	} // end: func displayGoalValues
 
 
 	// ==============================================================================================
@@ -478,140 +688,6 @@ class ViewController: UIViewController {
 		} // end: switch
 		
 	} // end: func createTrackLayer
-
-	
-	// ==============================================================================================
-	// MARK: func handleTap
-	//
-	// A function that begins displaying the UI information when the screen is tapped
-	//
-	// Arguments--
-	// None
-	//
-	// Returns--
-	// None
-	//
-	@objc func handleTap(singleTap: UITapGestureRecognizer) {
-		
-		// Once the tap stops
-		if (singleTap.state == UIGestureRecognizer.State.ended) {
-			let pointOfTap = singleTap.location(in: self.view) // Define the point the user tapped at
-			
-			// Define the boundary of the three rings
-			let ringCircle = UIBezierPath(arcCenter: CGPoint(x: screenWidth * 0.5, y: screenHeight * 0.35), radius: 130, startAngle: -CGFloat.pi / 2, endAngle: 1.5 * CGFloat.pi, clockwise: true)
-			let goalsRect: CGRect = CGRect(x: 0.0, y: screenHeight * 0.65, width: screenWidth, height: 120.0)
-			
-			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
-				
-				// Clear the data area of the canvas to display new data
-				displayClearRect(x: screenWidth * -0.5, y: screenHeight * -0.05, w: screenWidth * 2, h: screenHeight, font: 1500)
-				
-				// Create all of the ring animations
-				// Energy animation
-				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
-				handleRingAnimation(dataResults: energyRounded,
-									goal: energyGoal,
-									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
-									labelMsg: "WORK",
-									resultType: .energy)
-				// Steps animation
-				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
-				handleRingAnimation(dataResults: stepsRounded,
-									goal: stepsGoal,
-									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.green,
-									labelMsg: "STEPS",
-									resultType: .steps)
-				// Miles animation
-				let moveRounded = round(100.0 * self.resultMove) / 100.0
-				handleRingAnimation(dataResults: moveRounded,
-									goal: moveGoal,
-									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
-									labelMsg: "MOVE",
-									resultType: .move)
-				
-			} // end: if
-			
-			else if (goalsRect.contains(pointOfTap)) { // Set new goals
-				// Call for energy goal
-				resetGoals(defaultValue: 150, minValue: 1, maxValue: 500, resultType: .energy, sliderColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0), slider_x: 0, slider_y: 0)
-				// Call for steps goal
-				resetGoals(defaultValue: 5000, minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: UIColor.green, slider_x: 0, slider_y: 50)
-				// Call for move goal
-				resetGoals(defaultValue: 2, minValue: 1, maxValue: 10, resultType: .move, sliderColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0), slider_x: 0, slider_y: 100)
-			}
-		} // end: if
-		
-	} // end: func handleTap
-	
-	
-	// ==============================================================================================
-	// MARK: func resetGoals
-	//
-	// A function to add sliders to the screen so the user can change their goals
-	//
-	// Arguments--
-	// None
-	//
-	// Returns--
-	// None
-	//
-	func resetGoals(defaultValue: Float, minValue: Float, maxValue: Float, resultType: resultType, sliderColor: UIColor, slider_x: Int, slider_y: Int) {
-		
-		let goalSlider = UISlider(frame:CGRect(x: slider_x, y: slider_y, width: Int(screenWidth * 0.5), height: 10))
-		goalSlider.center = self.view.center
-		 
-		goalSlider.minimumValue = minValue
-		goalSlider.maximumValue = maxValue
-		goalSlider.isContinuous = true
-		goalSlider.tintColor = sliderColor
-		
-		switch resultType {
-			case .energy:
-				goalSlider.addTarget(self, action: #selector(self.energySliderChanged(_:)), for: .valueChanged)
-				
-			case .steps:
-				goalSlider.addTarget(self, action: #selector(self.stepsSliderChanged(_:)), for: .valueChanged)
-				
-			case .move:
-				goalSlider.addTarget(self, action: #selector(self.moveSliderChanged(_:)), for: .valueChanged)
-				
-		} // end: switch
-		
-		view.addSubview(goalSlider)
-		
-		UIView.animate(withDuration: 0.8) {
-			goalSlider.setValue(defaultValue, animated: true)
-		}
-		
-	} // end: func resetGoals
-	
-	
-	// ==============================================================================================
-	// MARK: functions slidersChanged
-	// func energySliderChanged, func stepsSliderChanged, func moveSliderChanged
-	//
-	// Three functions that handle the updating of a goal for energy, steps, or movement
-	//
-	// Arguments--
-	// None
-	//
-	// Returns--
-	// None
-	//
-	@objc func energySliderChanged(_ sender:UISlider!) {
-		energyGoal = Int(sender.value)
-	} // end: func energySliderChanged
-	
-	@objc func stepsSliderChanged(_ sender:UISlider!) {
-		stepsGoal = Int(sender.value)
-	} // end: func stepsSliderChanged
-	
-	@objc func moveSliderChanged(_ sender:UISlider!) {
-		moveGoal = Int(sender.value)
-	} // end: func moveSliderChanged
 	
 	
 	// ==============================================================================================
@@ -651,7 +727,7 @@ class ViewController: UIViewController {
 		// Take the data from healthkit (like resultEnergy) and the goal
 		let currentDataStatus: Double = Double(dataResults)
 		let goalForData: Int = goal
-		// Convert the data to a float (from 0 to 1) and then to a percentage
+		// Convert the data to a float (between 0 to 1) and then to a percentage
 		let dataToFloat: Float = Float(currentDataStatus) / Float(goalForData)
 		let dataToPercent: Int = Int(dataToFloat * 100)
 		
