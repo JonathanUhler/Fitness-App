@@ -9,37 +9,12 @@
 //
 // Revision History
 //
-// PRE-RELEASES
+// FULL-RELEASES
 //
 //	version		  date						changes
 //  -------		--------			-----------------------
-//	1.0.0		11/15/20			Changes in this version:
-//										-First working version of Fitness
-//
-//	2.0.0		11/17/20			Changes in this version:
-//										-The screen can now be swiped to change the day that data
-//										 is displayed for
-//										-Rendering issues with the date stamp were fixed
-//										-All three rings will update correctly when the screen is
-//										 tapped
-//										-Issues with tapping and swiping at the same time were fixed
-//										-App icon updated to support all versions of iOS 7-14 on all
-//										 devices
-//
-// 2.1.0		11/18/20			Changes in this version:
-//										-Single taps to update rings will only be detected when
-//										 tapping on the rings
-//
-// 2.2.0		11/18/20			Changes in this version:
-//										-Minor documentation changes
-//										-Semi-functional sliders to change goals
-//
-// 3.0.0		11/18/20			Changes in this version:
-//										-The goals can now be changed by tapping on anywhere on the
-//										 three rows of text at the bottom
-//											-Slider will show up that can be dragged to change goals
-//											-When the rings are tapped, the new goals will be used
-//											-Goals are saved even when closing the app
+//	1.0.0		11/18/20			First working full release of Fitness
+
 
 // Import healthkit utilities
 import UIKit
@@ -71,6 +46,10 @@ class ViewController: UIViewController {
 	var energyGoal = UserDefaults.standard.integer(forKey: "energySaved")
 	var stepsGoal = UserDefaults.standard.integer(forKey: "stepsSaved")
 	var moveGoal = UserDefaults.standard.integer(forKey: "moveSaved")
+	
+	let energyGoalDefault = 150
+	let stepsGoalDefault = 5000
+	let moveGoalDefault = 2
 	
 	// Shape layer for rings
 	let energyLayer = CAShapeLayer()
@@ -174,6 +153,15 @@ class ViewController: UIViewController {
 	//
 	override func viewDidLoad() {
 		super.viewDidLoad()
+		
+		print("""
+		work: \(energyGoal)
+		steps: \(stepsGoal)
+		move: \(moveGoal)
+		""")
+		
+		// Make sure the UserDefaults are not NaNs
+		
 		
 		// Display the current date
 		displayDate(dateToDisplay: globalNow)
@@ -357,7 +345,7 @@ class ViewController: UIViewController {
 				// Energy animation
 				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
 				handleRingAnimation(dataResults: energyRounded,
-									goal: energyGoal,
+									goal: energyGoal <= 0 ? energyGoalDefault : energyGoal,
 									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
 									labelMsg: "WORK",
@@ -365,7 +353,7 @@ class ViewController: UIViewController {
 				// Steps animation
 				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
 				handleRingAnimation(dataResults: stepsRounded,
-									goal: stepsGoal,
+									goal: stepsGoal <= 0 ? stepsGoalDefault : stepsGoal,
 									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.green,
 									labelMsg: "STEPS",
@@ -373,7 +361,7 @@ class ViewController: UIViewController {
 				// Miles animation
 				let moveRounded = round(100.0 * self.resultMove) / 100.0
 				handleRingAnimation(dataResults: moveRounded,
-									goal: moveGoal,
+									goal: moveGoal <= 0 ? moveGoalDefault : moveGoal,
 									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
 									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
 									labelMsg: "MOVE",

@@ -36,5 +36,4 @@ FULL-RELEASES--
 
 	version		date							changes
 	-------		--------			----------------------------------
-	1.0.0		11/18/20			Changes in this version:
-										-First full release of "Fitness"
+	1.0.0		11/18/20			First working full release of Fitness
