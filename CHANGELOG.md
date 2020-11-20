@@ -45,3 +45,9 @@ FULL-RELEASES--
 	1.0.2		11/19/20			Removed old debug utilities
 	
 	1.0.3		11/20/20			App only supports portrait mode now
+
+	1.0.4		10/20/20			Changes in this version:
+										-displayClearRect masks adjusted to fit all phones up to the
+										 iPhone 8
+										-UIView elemnts moved around; slider moved to match text
+										-Slider thumb rectangles increased in size to make them easier to use

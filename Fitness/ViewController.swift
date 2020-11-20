@@ -21,7 +21,13 @@
 //
 //	1.0.2		11/19/20			Removed old debug utilities
 //
-// 1.0.3		11/20/20			App only supports portrait mode now
+// 	1.0.3		11/20/20			App only supports portrait mode now
+//
+//	1.0.4		10/20/20			Changes in this version:
+//										-displayClearRect masks adjusted to fit all phones up to the
+//										 iPhone 8
+//										-UIView elemnts moved around; slider moved to match text
+//										-Slider thumb rectangles increased in size to make them easier to use
 
 
 // Import healthkit utilities
@@ -348,7 +354,7 @@ class ViewController: UIViewController {
 			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
 				
 				// Clear the data area of the canvas to display new data
-				displayClearRect(x: 0, y: screenHeight * 0.65, w: screenWidth * 2, h: 120)
+				displayClearRect(x: 0, y: screenHeight * 0.63, w: screenWidth * 2, h: 150)
 				
 				// Create all of the ring animations
 				// Energy animation
@@ -380,14 +386,14 @@ class ViewController: UIViewController {
 			
 			else if (goalsRect.contains(pointOfTap)) { // Set new goals
 				// Clear the health data to prevent overlapping
-				displayClearRect(x: 0, y: screenHeight * 0.65, w: screenWidth * 2, h: 120)
+				displayClearRect(x: 0, y: screenHeight * 0.63, w: screenWidth * 2, h: 150)
 				
 				// Call for energy goal
-				resetGoals(defaultValue: Float(energyGoal), minValue: 1, maxValue: 500, resultType: .energy, sliderColor: energyRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.68))
+				resetGoals(defaultValue: Float(energyGoal), minValue: 1, maxValue: 500, resultType: .energy, sliderColor: energyRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.65))
 				// Call for steps goal
-				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: stepsRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.75))
+				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: stepsRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.72))
 				// Call for move goal
-				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: moveRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.82))
+				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: moveRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.79))
 			}
 		} // end: if
 		
@@ -487,13 +493,16 @@ class ViewController: UIViewController {
 	//
 	func resetGoals(defaultValue: Float, minValue: Float, maxValue: Float, resultType: resultType, sliderColor: UIColor, slider_x: Int, slider_y: Int) {
 		
-		let goalSlider = UISlider(frame:CGRect(x: slider_x, y: slider_y, width: Int(screenWidth * 0.75), height: 5))
+		// Declare the slider
+		let goalSlider = UISlider(frame:CGRect(x: slider_x, y: slider_y, width: Int(screenWidth * 0.75), height: 30))
 		
+		// Set the min and max values the slider can have and the color of the slider
 		goalSlider.minimumValue = minValue
 		goalSlider.maximumValue = maxValue
 		goalSlider.isContinuous = true
 		goalSlider.tintColor = sliderColor
 		
+		// Call functions to update the sliders
 		switch resultType {
 			case .energy:
 				goalSlider.addTarget(self, action: #selector(self.energySliderChanged(_:)), for: .valueChanged)
@@ -506,8 +515,10 @@ class ViewController: UIViewController {
 				
 		} // end: switch
 		
+		// Add the slider to the UIView
 		view.addSubview(goalSlider)
 		
+		// Animate the slider
 		UIView.animate(withDuration: 0.8) {
 			goalSlider.setValue(defaultValue, animated: true)
 		}
@@ -531,7 +542,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 10) * 10
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.667), w: 40, h: 20, msg: String(Int(sender.value)), color: energyRingColor)
+		displayGoalValues(x: Int(screenWidth * 0.865), y: Int(screenHeight * 0.66), w: 40, h: 20, msg: String(Int(sender.value)), color: energyRingColor)
 		
 		energyGoal = Int(sender.value)
 		
@@ -543,7 +554,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 1000) * 1000
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.737), w: 40, h: 20, msg: String(Int(sender.value)), color: stepsRingColor)
+		displayGoalValues(x: Int(screenWidth * 0.865), y: Int(screenHeight * 0.73), w: 40, h: 20, msg: String(Int(sender.value)), color: stepsRingColor)
 		
 		stepsGoal = Int(sender.value)
 		
@@ -555,7 +566,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 1) * 1
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.807), w: 40, h: 20, msg: String(Int(sender.value)), color: moveRingColor)
+		displayGoalValues(x: Int(screenWidth * 0.865), y: Int(screenHeight * 0.8), w: 40, h: 20, msg: String(Int(sender.value)), color: moveRingColor)
 		
 		moveGoal = Int(sender.value)
 		
@@ -586,7 +597,7 @@ class ViewController: UIViewController {
 	//
 	func displayGoalValues(x: Int, y: Int, w: Int, h: Int, msg: String, color: UIColor) {
 		
-		displayClearRect(x: screenWidth * 0.86, y: screenHeight * 0.66, w: 40, h: 135)
+		displayClearRect(x: screenWidth * 0.865, y: screenHeight * 0.66, w: 40, h: 135)
 		
 		let goalRect: CGRect = CGRect(x: x, y: y, width: w, height: h)
 		let goalLabel: UILabel = UILabel(frame: goalRect)
@@ -727,6 +738,10 @@ class ViewController: UIViewController {
 		// Convert the data to a float (between 0 to 1) and then to a percentage
 		let dataToFloat: Float = Float(currentDataStatus) / Float(goalForData)
 		let dataToPercent: Int = Int(dataToFloat * 100)
+		
+		if (dataToPercent >= 100) {
+			print("ring completed")
+		}
 		
 		
 		switch resultType {
