@@ -37,3 +37,9 @@ FULL-RELEASES--
 	version		date							changes
 	-------		--------			----------------------------------
 	1.0.0		11/18/20			First working full release of Fitness
+	
+	1.0.1		11/19/20			Changes in this version:
+										-Minor documentation changes
+										-UIColors for the rings replaced with global variables of the save values
+
+	1.0.2		11/19/20			Removed old debug utilities
