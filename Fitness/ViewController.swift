@@ -20,6 +20,8 @@
 //										-UIColors for the rings replaced with global variables of the save values
 //
 //	1.0.2		11/19/20			Removed old debug utilities
+//
+// 1.0.3		11/20/20			App only supports portrait mode now
 
 
 // Import healthkit utilities
