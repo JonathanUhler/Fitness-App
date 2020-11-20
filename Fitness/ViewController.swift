@@ -14,6 +14,10 @@
 //	version		  date						changes
 //  -------		--------			-----------------------
 //	1.0.0		11/18/20			First working full release of Fitness
+//
+//	1.0.1		11/19/20			Changes in this version:
+//										-Minor documentation changes
+//										-UIColors for the rings replaced with global variables of the save values
 
 
 // Import healthkit utilities
@@ -39,17 +43,24 @@ class ViewController: UIViewController {
 	lazy var screenWidth = screenRect.size.width
 	lazy var screenHeight = screenRect.size.height
 	
+	// Variables for the result data from health
 	var resultEnergy: Double = 0.0
 	var resultSteps: Double = 0.0
 	var resultMove: Double = 0.0
 	
+	// Variables to save the users goals for each category
 	var energyGoal = UserDefaults.standard.integer(forKey: "energySaved")
 	var stepsGoal = UserDefaults.standard.integer(forKey: "stepsSaved")
 	var moveGoal = UserDefaults.standard.integer(forKey: "moveSaved")
-	
+	// The default values for the goals. These are used if the user doesn't already have any goal data
 	let energyGoalDefault = 150
 	let stepsGoalDefault = 5000
 	let moveGoalDefault = 2
+	
+	// The colors of the rings
+	let energyRingColor = UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0)
+	let stepsRingColor = UIColor.green
+	let moveRingColor = UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0)
 	
 	// Shape layer for rings
 	let energyLayer = CAShapeLayer()
@@ -223,11 +234,11 @@ class ViewController: UIViewController {
 		
 		// Call createTrackLayer to create circles
 		// Exercise circle
-		createTrackLayer(layerRadius: 110, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .energy)
+		createTrackLayer(layerRadius: 110, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: energyRingColor.cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .energy)
 		// Steps circle
-		createTrackLayer(layerRadius: 75, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.green.cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .steps)
+		createTrackLayer(layerRadius: 75, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: stepsRingColor.cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .steps)
 		// Miles circle
-		createTrackLayer(layerRadius: 40, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0).cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .move)
+		createTrackLayer(layerRadius: 40, layerStart: -CGFloat.pi / 2, layerEnd: 1.5 * CGFloat.pi, layerStrokeColor: UIColor.init(red: 0.14, green: 0.14, blue: 0.14, alpha: 1.0).cgColor, circleStrokeColor: moveRingColor.cgColor, point_x: CGPoint_x, point_y: CGPoint_y, resultType: .move)
 	}
 	
 	// ==============================================================================================
@@ -347,7 +358,7 @@ class ViewController: UIViewController {
 				handleRingAnimation(dataResults: energyRounded,
 									goal: energyGoal <= 0 ? energyGoalDefault : energyGoal,
 									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0),
+									labelTextColor: energyRingColor,
 									labelMsg: "WORK",
 									resultType: .energy)
 				// Steps animation
@@ -355,7 +366,7 @@ class ViewController: UIViewController {
 				handleRingAnimation(dataResults: stepsRounded,
 									goal: stepsGoal <= 0 ? stepsGoalDefault : stepsGoal,
 									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.green,
+									labelTextColor: stepsRingColor,
 									labelMsg: "STEPS",
 									resultType: .steps)
 				// Miles animation
@@ -363,7 +374,7 @@ class ViewController: UIViewController {
 				handleRingAnimation(dataResults: moveRounded,
 									goal: moveGoal <= 0 ? moveGoalDefault : moveGoal,
 									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
-									labelTextColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0),
+									labelTextColor: moveRingColor,
 									labelMsg: "MOVE",
 									resultType: .move)
 				
@@ -374,11 +385,11 @@ class ViewController: UIViewController {
 				displayClearRect(x: 0, y: screenHeight * 0.65, w: screenWidth * 2, h: 120)
 				
 				// Call for energy goal
-				resetGoals(defaultValue: Float(energyGoal), minValue: 1, maxValue: 500, resultType: .energy, sliderColor: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0), slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.68))
+				resetGoals(defaultValue: Float(energyGoal), minValue: 1, maxValue: 500, resultType: .energy, sliderColor: energyRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.68))
 				// Call for steps goal
-				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: UIColor.green, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.75))
+				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: stepsRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.75))
 				// Call for move goal
-				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0), slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.82))
+				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: moveRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.82))
 			}
 		} // end: if
 		
@@ -522,7 +533,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 10) * 10
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.667), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.init(red: 0.92, green: 0.06, blue: 0.33, alpha: 1.0))
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.667), w: 40, h: 20, msg: String(Int(sender.value)), color: energyRingColor)
 		
 		energyGoal = Int(sender.value)
 		
@@ -534,7 +545,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 1000) * 1000
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.737), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.green)
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.737), w: 40, h: 20, msg: String(Int(sender.value)), color: stepsRingColor)
 		
 		stepsGoal = Int(sender.value)
 		
@@ -546,7 +557,7 @@ class ViewController: UIViewController {
 		let roundedStepValue = round(sender.value / 1) * 1
 		sender.value = roundedStepValue
 		
-		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.807), w: 40, h: 20, msg: String(Int(sender.value)), color: UIColor.init(red: 0.38, green: 0.87, blue: 0.91, alpha: 1.0))
+		displayGoalValues(x: Int(screenWidth * 0.86), y: Int(screenHeight * 0.807), w: 40, h: 20, msg: String(Int(sender.value)), color: moveRingColor)
 		
 		moveGoal = Int(sender.value)
 		
