@@ -18,6 +18,8 @@
 //	1.0.1		11/19/20			Changes in this version:
 //										-Minor documentation changes
 //										-UIColors for the rings replaced with global variables of the save values
+//
+//	1.0.2		11/19/20			Removed old debug utilities
 
 
 // Import healthkit utilities
@@ -164,12 +166,6 @@ class ViewController: UIViewController {
 	//
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		
-		print("""
-		work: \(energyGoal)
-		steps: \(stepsGoal)
-		move: \(moveGoal)
-		""")
 		
 		// Make sure the UserDefaults are not NaNs
 		
