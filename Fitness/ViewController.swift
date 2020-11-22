@@ -23,11 +23,15 @@
 //
 // 	1.0.3		11/20/20			App only supports portrait mode now
 //
-//	1.0.4		10/20/20			Changes in this version:
+//	1.0.4		11/20/20			Changes in this version:
 //										-displayClearRect masks adjusted to fit all phones up to the
 //										 iPhone 8
 //										-UIView elemnts moved around; slider moved to match text
 //										-Slider thumb rectangles increased in size to make them easier to use
+//
+//	1.1.0		11/20/20			Changes in this version:
+//										-The data and slider presentation can be swapped by tapping on either the
+//										 sliders again or the rings
 
 
 // Import healthkit utilities
@@ -76,6 +80,9 @@ class ViewController: UIViewController {
 	let energyLayer = CAShapeLayer()
 	let stepsLayer = CAShapeLayer()
 	let moveLayer = CAShapeLayer()
+	
+	// Figure out which mode the user is on (text or reset goals)
+	var showingData = true
 	
 	// Time
 	let globalNow = Date()
@@ -349,9 +356,11 @@ class ViewController: UIViewController {
 			
 			// Define the boundary of the three rings
 			let ringCircle = UIBezierPath(arcCenter: CGPoint(x: screenWidth * 0.5, y: screenHeight * 0.35), radius: 130, startAngle: -CGFloat.pi / 2, endAngle: 1.5 * CGFloat.pi, clockwise: true)
-			let goalsRect: CGRect = CGRect(x: 0.0, y: screenHeight * 0.65, width: screenWidth, height: 120.0)
+			let goalsAndTextRect: CGRect = CGRect(x: 0.0, y: screenHeight * 0.65, width: screenWidth, height: 120.0)
 			
 			if (ringCircle.contains(pointOfTap)) { // if the tap was detected within the bounds of the rings
+				
+				showingData = true
 				
 				// Clear the data area of the canvas to display new data
 				displayClearRect(x: 0, y: screenHeight * 0.63, w: screenWidth * 2, h: 150)
@@ -384,7 +393,11 @@ class ViewController: UIViewController {
 				
 			} // end: if
 			
-			else if (goalsRect.contains(pointOfTap)) { // Set new goals
+			else if (goalsAndTextRect.contains(pointOfTap) && showingData == true) { // Set new goals
+				
+				// Tell the program you are showing the sliders
+				showingData = false
+				
 				// Clear the health data to prevent overlapping
 				displayClearRect(x: 0, y: screenHeight * 0.63, w: screenWidth * 2, h: 150)
 				
@@ -394,6 +407,40 @@ class ViewController: UIViewController {
 				resetGoals(defaultValue: Float(stepsGoal), minValue: 1, maxValue: 20000, resultType: .steps, sliderColor: stepsRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.72))
 				// Call for move goal
 				resetGoals(defaultValue: Float(moveGoal), minValue: 1, maxValue: 10, resultType: .move, sliderColor: moveRingColor, slider_x: Int(screenWidth * 0.12), slider_y: Int(screenHeight * 0.79))
+			}
+			
+			else if (goalsAndTextRect.contains(pointOfTap) && showingData == false) {
+				
+				displayClearRect(x: 0, y: screenHeight * 0.63, w: screenWidth * 2, h: 150)
+				
+				// Tell the program you are showing the data
+				showingData = true
+				
+				// Create all of the ring animations
+				// Energy animation
+				let energyRounded = round(1.0 * self.resultEnergy) / 1.0
+				handleRingAnimation(dataResults: energyRounded,
+									goal: energyGoal <= 0 ? energyGoalDefault : energyGoal,
+									frame_x: 0, frame_y: screenHeight * 0.55, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: energyRingColor,
+									labelMsg: "WORK",
+									resultType: .energy)
+				// Steps animation
+				let stepsRounded = round(1.0 * self.resultSteps) / 1.0
+				handleRingAnimation(dataResults: stepsRounded,
+									goal: stepsGoal <= 0 ? stepsGoalDefault : stepsGoal,
+									frame_x: 0, frame_y: screenHeight * 0.62, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: stepsRingColor,
+									labelMsg: "STEPS",
+									resultType: .steps)
+				// Miles animation
+				let moveRounded = round(100.0 * self.resultMove) / 100.0
+				handleRingAnimation(dataResults: moveRounded,
+									goal: moveGoal <= 0 ? moveGoalDefault : moveGoal,
+									frame_x: 0, frame_y: screenHeight * 0.69, frame_w: screenWidth, frame_h: 150,
+									labelTextColor: moveRingColor,
+									labelMsg: "MOVE",
+									resultType: .move)
 			}
 		} // end: if
 		
@@ -807,4 +854,3 @@ class ViewController: UIViewController {
 	} // end: func handleRingAnimation
 
 } // end: class ViewController
-
