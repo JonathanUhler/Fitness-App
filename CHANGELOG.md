@@ -50,3 +50,7 @@ FULL-RELEASES--
 										-displayClearRect masks adjusted to fit all phones up to the iPhone 8
 										-UIView elemnts moved around; slider moved to match text
 										-Slider thumb rectangles increased in size to make them easier to use
+										
+	1.1.0		11/20/20			Changes in this version:
+										-The data and slider presentation can be swapped by tapping on either the sliders again or the rings
+										-Added license information to ViewController.swift
